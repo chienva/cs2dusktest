@@ -38,23 +38,22 @@ class PostTalkComponent extends BaseComponent
     public function elements()
     {
         return [
+            '@moduleId' => 'input[name=module_id]',
             '@category' => 'select[name=category_l_id]',
             '@caption' => 'input[name=caption]',
             '@description' => 'textarea[name=description]',
         ];
     }
 
-    public function doPostTalk($browser, $user_id, $category, $caption, $description)
+    public function doPostTalk($browser, $moduleId, $category, $caption, $description)
     {
         $browser->select('@category', $category)
+                ->type('@moduleId', $moduleId)
                 ->type('@caption', $caption)
                 ->type('@description', $description)
                 ->press('投稿する');
-                // ->visit('/talk/api/do-post/alias/talk')
-                // ->assertSee()
-
-                // ->assertUrlIs('/talk/talk/business/1949/')
-                // ->assertPathIs('/home/' . $contacts->first()->id)
-                // ->assertSee($caption);
+                // ->assertDialogOpened('システムエラーが発生しました。');
+                // ->acceptDialog();
+        // $browser->driver->switchTo()->alert()->accept();
     }
 }

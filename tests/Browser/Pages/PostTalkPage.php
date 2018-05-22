@@ -48,10 +48,13 @@ class PostTalkPage extends BasePage
         $getUsers = Users::where('id', 6)->first();
         $caption = 'this is caption';
         $description = 'this is description';
+        $category = 7;
+        $img = '5ada3d516dbe2.jpg';
+        $tags = 'chienva';
 
         $browser->visit($this->url())
-                ->within(new PostTalkComponent, function ($browser) use ($getUsers, $caption, $description) {
-                        $browser->doPostTalk($getUsers->id, $caption, $description);
+                ->within(new PostTalkComponent, function ($browser) use ($category, $getUsers, $caption, $description, $img, $tags) {
+                        $browser->doPostTalk($category, $getUsers->id, $caption, $description, $img, $tags);
                 });
     }
 }
