@@ -14,7 +14,7 @@ class InputLoginComponent extends BaseComponent
      */
     public function selector()
     {
-        return '.pm-lgn-form';
+        return '.pm-lgn__content';
     }
 
     /**
@@ -41,10 +41,47 @@ class InputLoginComponent extends BaseComponent
         ];
     }
 
-    public function doLogin($browser, $email, $passwd)
+    public function doLogin($browser, $email, $passwd, $redirectUrl)
     {
+        $browser->assertSee('メールアドレス')
+            ->assertVisible('#email')
+            ->assertSee('パスワード')
+            ->assertVisible('#passwd')
+            ->assertSee('次回から自動ログイン')
+            ->assertVisible('.left20')
+            ->assertVisible('.cs-button-a--1-l')
+            ->assertSee('パスワードを忘れた場合')
+            ->assertVisible('.cs-button-b--1-l')
+            ->assertSee('または')
+            ->assertVisible('.pm-lgn-sns .pm-lgn-sns__heading')
+            ->assertSee('SNSアカウントでログインする')
+            ->assertVisible('.pm-lgn-sns__link-tw')
+            ->assertSee('Twitter アカウントを使用')
+            ->assertVisible('.pm-lgn-sns__link-fb')
+            ->assertSee('Facebook アカウントを使用');
+
+        $browser->type('@email', '')
+            ->type('@passwd', '')
+            ->press('ログイン')
+            ->assertSee('入力必須です。');
+
         $browser->type('@email', $email)
-                ->type('@passwd', $passwd)
-                ->press('ログイン');
+            ->type('@passwd', '')
+            ->press('ログイン')
+            ->assertSee('入力必須です。');
+
+        $browser->type('@email', 'staff.newnomori+8@vcxvcxgmail.com')
+            ->type('@passwd', $passwd)
+            ->press('ログイン')
+            ->assertSee('ログインに失敗しました。');
+
+        $browser->type('@email', $email)
+            ->type('@passwd', $passwd)
+            ->assertInputValue('@email', $email)
+            ->assertInputValue('@passwd', $passwd)
+            ->press('ログイン')
+            // ->assertPathIs($redirectUrl);
+            ->visit($redirectUrl);
+
     }
 }
