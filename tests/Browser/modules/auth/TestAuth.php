@@ -23,7 +23,12 @@ class TestAuth extends DuskTestCase
                     ->assertSee($getUsers->nickname)
                     ->click('.cs-h-toolbar-item--user')
                     ->waitFor('.cs-h-toolbar-menu--user')
-                    ->assertSee('ログアウト');
+                    ->assertSee('ログアウト')
+                    ->clickLink('ログアウト')
+                    ->visit('/auth/do-logout')
+                    ->pause(5000)
+                    ->assertPathIs($redirectUrl)
+                    ->assertSee('ログイン');
             
         });        
     }
