@@ -17,53 +17,77 @@ use Tests\Browser\Pages\PostTalkPage;
 use Tests\Browser\Pages\DetailTalkPage;
 use Tests\Browser\Components\PostTalkComponent;
 
+use DateTime;
+
 class TestListTalk extends DuskTestCase
 {
     protected static $_alias = 'talk'; 
+    protected static $_url = '/talk/talk';
+
     /**
      * A Dusk test example.
      *
      * @return void
      */
-    // public function testCategory()
-    // {
-    //     $getModules = Modules::where('alias', self::$_alias)->first();
-    //     $getCategoryLarges = CategoryLarges::where('module_id', $getModules->id)->orderBy('sort_order','asc')->get();
+    public function testListTalks()
+    {
+        $getModules = Modules::where('alias', self::$_alias)->first();
+        $getCategoryLarges = CategoryLarges::where('module_id', $getModules->id)->orderBy('sort_order','asc')->get();
 
-    //     $this->browse(function (Browser $browser) use ($getCategoryLarges) {
-    //         $getUsers = Users::where('id', 6)->first();
-    //         $browser->on(new LoginPage)
-    //                 ->loginUser()
-    //                 ->visit('/talk/talk')
-    //                 ->waitFor('.is-login')
-    //                 ->assertSee('TALKに話題を投稿しましょう！')
-    //                 ->click('.cs-titlebar__subtitle');
-                
-    //                 // check display menu category header
-    //                 foreach ($getCategoryLarges as $cate) {
-    //                     $browser->assertSee($cate->title);
-    //                 }
-    //         $browser->click('.cs-titlebar__subtitle')
-    //                 ->assertSee('TALKに話題を投稿しましょう！');
+        $this->browse(function (Browser $browser) use ($getCategoryLarges, $getModules) {
+            $options = $this->getOption($getModules, 'is_post');
+
+            $talks = $this->getTalks();
+            $countTalk = $this->getTalksAll();
             
-    //     });
+            $browser->on(new LoginPage(self::$_url))
+                    ->loginUser()
+                    ->waitFor('.is-login')
+                    ->waitFor('.cs-titlebar__title')
+                    ->assertSee($getModules->caption)
+                    ->click('.cs-titlebar__subtitle');
+                
+                    // check display menu category header
+                    foreach ($getCategoryLarges as $cate) {
+                        $browser->assertSee($cate->title);
+                    }
+
+            $browser->click('.cs-titlebar__subtitle');
+            if ($options) {
+                $captionPost = $getModules->caption . 'に話題を投稿しましょう！';
+                $browser->assertSee($captionPost);
+            }
+            
+            $browser->assertSee('更新順')
+                    ->assertSee('コメント数順');
+
+            if ($countTalk > 10) {
+                $browser->assertSee('もっと見る');
+            }
+
+            //check list
+            $this->assertNotNull($talks);
+            foreach ($talks as $talk) {
+                // $dateTalk = $talk->opened ?: $talk->created;
+                // $dateTalkFormat = $this->dateFormat($dateTalk);
+
+                $browser->assertSee($talk->caption);
+                $browser->assertSee($talk->description);
+                $browser->assertSee($talk->nickname);
+                $browser->assertValue('.cs-response-c__button--like .cs-response-c__counter', $talk->num_good);
+                $browser->assertValue('.cs-response-c__button--comment .cs-response-c__counter', $talk->num_comment);
+                // $browser->assertSee($dateTalkFormat);
+            }
+            
+        });
 
         
-    // }
+    }
 
     // public function testShowListTalks()
     // {
-    //     $talks = DB::table('cs_entry')
-    //                 ->join('cs_user', 'cs_user.id', '=', 'cs_entry.user_id')
-    //                 ->select('cs_entry.*', 'cs_user.profile_img', 'cs_user.nickname')
-    //                 ->whereNull('cs_entry.deleted')
-    //                 ->whereIn('cs_entry.status', [1, 2])
-    //                 ->where('cs_entry.module_id', 1)
-    //                 ->orderBy('cs_entry.id', 'desc')
-    //                 ->offset(10)
-    //                 ->limit(10)
-    //                 // ->toSql();
-    //                 ->get();
+    //     $talks = $this->getTalks();
+    //     $countTalk = $this->getTalksAll();
 
     //     $this->browse(function (Browser $browser) use ($talks) {
     //         $browser->visit('/talk/talk')
@@ -79,6 +103,41 @@ class TestListTalk extends DuskTestCase
             
     //     });
     // }
+
+    public function getOption($dataOption, $key, $nothingValue = false) {
+        $options = json_decode($dataOption->options, true);
+        return isset($options[$key]) ? $options[$key] : $nothingValue;
+    }
+
+
+    public function getTalksAll() {
+        $talks = DB::table('cs_entry')
+                    ->join('cs_user', 'cs_user.id', '=', 'cs_entry.user_id')
+                    ->select('cs_entry.*', 'cs_user.profile_img', 'cs_user.nickname')
+                    ->whereNull('cs_entry.deleted')
+                    ->whereNull('cs_entry.latest_commented')
+                    ->whereIn('cs_entry.status', [1, 2])
+                    ->where('cs_entry.module_id', 1)
+                    ->orderBy('cs_entry.created', 'desc')
+                    ->get();
+
+        return count($talks);
+    }
+
+    public function getTalks() {
+        $talks = DB::table('cs_entry')
+                    ->join('cs_user', 'cs_user.id', '=', 'cs_entry.user_id')
+                    ->select('cs_entry.*', 'cs_user.profile_img', 'cs_user.nickname')
+                    ->whereNull('cs_entry.deleted')
+                    ->whereNull('cs_entry.latest_commented')
+                    ->whereIn('cs_entry.status', [1, 2])
+                    ->where('cs_entry.module_id', 1)
+                    ->orderBy('cs_entry.created', 'desc')
+                    ->limit(10)
+                    ->get();
+
+        return $talks;
+    }
 
     // public function testClickSortNewList()
     // {
@@ -142,54 +201,54 @@ class TestListTalk extends DuskTestCase
     // }
 
 
-    public function testClickViewDetail()
-    {
-        $talks = DB::table('cs_entry')
-                    ->join('cs_user', 'cs_user.id', '=', 'cs_entry.user_id')
-                    ->select('cs_entry.*', 'cs_user.profile_img', 'cs_user.nickname')
-                    ->whereNull('cs_entry.deleted')
-                    ->whereNull('cs_entry.latest_commented')
-                    ->whereIn('cs_entry.status', [1, 2])
-                    ->where('cs_entry.module_id', 1)
-                    ->orderBy('cs_entry.created', 'desc')
-                    ->limit(10)
-                    ->get();
+    // public function testClickViewDetail()
+    // {
+    //     $talks = DB::table('cs_entry')
+    //                 ->join('cs_user', 'cs_user.id', '=', 'cs_entry.user_id')
+    //                 ->select('cs_entry.*', 'cs_user.profile_img', 'cs_user.nickname')
+    //                 ->whereNull('cs_entry.deleted')
+    //                 ->whereNull('cs_entry.latest_commented')
+    //                 ->whereIn('cs_entry.status', [1, 2])
+    //                 ->where('cs_entry.module_id', 1)
+    //                 ->orderBy('cs_entry.created', 'desc')
+    //                 ->limit(10)
+    //                 ->get();
 
-        $this->browse(function (Browser $browser) use ($talks) {
-            $browser->visit('/talk/talk');
-                    // ->assertSee('TALKに話題を投稿しましょう！')
-                    // ->visit(
-                    //     $browser->attribute('#chienva2041', 'href')
-                    // );
-                    // ->assertPathIs('/talk/talk/test2/2041/');
+    //     $this->browse(function (Browser $browser) use ($talks) {
+    //         $browser->visit('/talk/talk');
+    //                 // ->assertSee('TALKに話題を投稿しましょう！')
+    //                 // ->visit(
+    //                 //     $browser->attribute('#chienva2041', 'href')
+    //                 // );
+    //                 // ->assertPathIs('/talk/talk/test2/2041/');
                     
-            $this->assertNotNull($talks);
-            foreach ($talks as $talk) {
-                $idSelector = '#chienva'.$talk->id;
-                $attribute = $browser->attribute($idSelector, 'href');
-                // echo $attribute;
+    //         $this->assertNotNull($talks);
+    //         foreach ($talks as $talk) {
+    //             $idSelector = '#chienva'.$talk->id;
+    //             $attribute = $browser->attribute($idSelector, 'href');
+    //             // echo $attribute;
 
-                // $browser->assertVisible($idSelector)
-                //         ->visit($attribute)
-                //         ->assertSee($talk->caption);
-                        // ->assertSee($talk->caption);
+    //             // $browser->assertVisible($idSelector)
+    //             //         ->visit($attribute)
+    //             //         ->assertSee($talk->caption);
+    //                     // ->assertSee($talk->caption);
 
-                $browser->assertVisible($idSelector)
-                        ->visit(
-                            $browser->attribute($idSelector, 'href')
-                        )
-                        ->assertPathIs($attribute);
-                        // ->clickLink('Edit')
-                        // ->type('description', 'Testing it with dusk again')
-                        // ->press('Update')
-                        // ->assertPathIs('/todoapplaravel/public/todo/1');
+    //             $browser->assertVisible($idSelector)
+    //                     ->visit(
+    //                         $browser->attribute($idSelector, 'href')
+    //                     )
+    //                     ->assertPathIs($attribute);
+    //                     // ->clickLink('Edit')
+    //                     // ->type('description', 'Testing it with dusk again')
+    //                     // ->press('Update')
+    //                     // ->assertPathIs('/todoapplaravel/public/todo/1');
 
-            }
+    //         }
 
             
             
-        });
-    }
+    //     });
+    // }
 
     // public function testPostTalk()
     // {
